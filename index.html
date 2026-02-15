@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Dev Tools</title>
+    <meta name="description" content="A comprehensive suite of developer tools running entirely in your browser.">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#64748b',
+                        dark: '#0f172a'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
+
+    <style>
+        /* Custom scrollbar for a polished look */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .tool-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tool-section.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Toast notification styles */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            min-width: 250px;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast.success { background-color: #10b981; }
+        .toast.error { background-color: #ef4444; }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 font-sans h-screen flex overflow-hidden">
+
+    <aside class="w-64 bg-dark text-white flex flex-col h-full shadow-xl z-20 transition-all duration-300">
+        <div class="p-6 border-b border-slate-700">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-code text-primary"></i> DevTools
+            </h1>
+            <p class="text-xs text-slate-400 mt-2">v1.0.0 | Client-side only</p>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-4" id="sidebar-nav">
+            <ul class="space-y-1 px-3">
+                <li>
+                    <button data-target="tool-json" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left hover:bg-slate-800 transition-colors active-nav">
+                        <i class="fa-solid fa-brackets-curly w-5 text-center"></i> JSON Formatter
+                    </button>
+                </li>
+                <li>
+                    <button data-target="tool-base64" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left hover:bg-slate-800 transition-colors">
+                        <i class="fa-solid fa-right-left w-5 text-center"></i> Base64 & URL
+                    </button>
+                </li>
+                <li>
+                    <button data-target="tool-hash" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left hover:bg-slate-800 transition-colors">
+                        <i class="fa-solid fa-hashtag w-5 text-center"></i> Hash Generator
+                    </button>
+                </li>
+                <li>
+                    <button data-target="tool-jwt" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left hover:bg-slate-800 transition-colors">
+                        <i class="fa-solid fa-key w-5 text-center"></i> JWT Decoder
+                    </button>
+                </li>
+                <li>
+                    <button data-target="tool-regex" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left hover:bg-slate-800 transition-colors">
+                        <i class="fa-solid fa-magnifying-glass w-5 text-center"></i> RegExp Tester
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden bg-gray-50">
+        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-8 z-10">
+            <h2 id="current-tool-title" class="text-xl font-semibold text-slate-700">JSON Formatter</h2>
+            <div class="flex items-center gap-4">
+                <span class="text-sm text-slate-500"><i class="fa-solid fa-shield-halved text-green-500"></i> Secure Client-Side Processing</span>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-8 relative">
+            
+            <section id="tool-json" class="tool-section active h-full flex flex-col">
+                <div class="mb-4 text-slate-600 text-sm">Validate, format, and minify JSON data.</div>
+                <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+                    <div class="flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="font-medium text-slate-700">Input JSON</label>
+                            <div class="space-x-2">
+                                <button id="btn-json-clear" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded transition"><i class="fa-solid fa-trash"></i> Clear</button>
+                                <button id="btn-json-paste" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded transition"><i class="fa-solid fa-paste"></i> Paste</button>
+                            </div>
+                        </div>
+                        <textarea id="json-input" class="flex-1 w-full p-4 border border-slate-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary focus:border-primary resize-none outline-none shadow-sm" placeholder='{"example": "Paste your JSON here..."}'></textarea>
+                    </div>
+                    <div class="flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="font-medium text-slate-700">Output</label>
+                            <div class="space-x-2">
+                                <button id="btn-json-copy" class="text-xs bg-primary hover:bg-sky-600 text-white px-3 py-1 rounded transition shadow-sm"><i class="fa-solid fa-copy"></i> Copy</button>
+                            </div>
+                        </div>
+                        <div class="relative flex-1">
+                            <textarea id="json-output" class="w-full h-full p-4 border border-slate-300 rounded-lg bg-slate-50 font-mono text-sm outline-none resize-none shadow-sm" readonly placeholder="Result will appear here..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-center gap-4">
+                    <button id="btn-json-format" class="bg-primary hover:bg-sky-600 text-white px-6 py-2 rounded-lg font-medium transition shadow-md flex items-center gap-2"><i class="fa-solid fa-align-left"></i> Format / Pretty Print</button>
+                    <button id="btn-json-minify" class="bg-secondary hover:bg-slate-600 text-white px-6 py-2 rounded-lg font-medium transition shadow-md flex items-center gap-2"><i class="fa-solid fa-compress"></i> Minify</button>
+                </div>
+            </section>
+<section id="tool-base64" class="tool-section h-full flex flex-col">
+                <div class="mb-4 text-slate-600 text-sm">Encode and decode text or data using Base64 or URL encoding.</div>
+                <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+                    <div class="flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="font-medium text-slate-700">Input String</label>
+                            <div class="space-x-2">
+                                <button id="btn-base64-clear" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded transition"><i class="fa-solid fa-trash"></i> Clear</button>
+                            </div>
+                        </div>
+                        <textarea id="base64-input" class="flex-1 w-full p-4 border border-slate-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary focus:border-primary resize-none outline-none shadow-sm" placeholder="Type or paste your text here..."></textarea>
+                    </div>
+                    <div class="flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="font-medium text-slate-700">Output Result</label>
+                            <div class="space-x-2">
+                                <button id="btn-base64-copy" class="text-xs bg-primary hover:bg-sky-600 text-white px-3 py-1 rounded transition shadow-sm"><i class="fa-solid fa-copy"></i> Copy</button>
+                            </div>
+                        </div>
+                        <div class="relative flex-1">
+                            <textarea id="base64-output" class="w-full h-full p-4 border border-slate-300 rounded-lg bg-slate-50 font-mono text-sm outline-none resize-none shadow-sm" readonly placeholder="Result will appear here..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-wrap justify-center gap-4">
+                    <button id="btn-b64-encode" class="bg-primary hover:bg-sky-600 text-white px-6 py-2 rounded-lg font-medium transition shadow-md flex items-center gap-2">Base64 Encode</button>
+                    <button id="btn-b64-decode" class="bg-secondary hover:bg-slate-600 text-white px-6 py-2 rounded-lg font-medium transition shadow-md flex items-center gap-2">Base64 Decode</button>
+                    <div class="w-px bg-slate-300 mx-2"></div>
+                    <button id="btn-url-encode" class="bg-primary hover:bg-sky-600 text-white px-6 py-2 rounded-lg font-medium transition shadow-md flex items-center gap-2">URL Encode</button>
+                    <button id="btn-url-decode" class="bg-secondary hover:bg-slate-600 text-white px-6 py-2 rounded-lg font-medium transition shadow-md flex items-center gap-2">URL Decode</button>
+                </div>
+            </section>
+
+            <section id="tool-hash" class="tool-section h-full flex flex-col">
+                <div class="mb-4 text-slate-600 text-sm">Generate cryptographic hashes instantly. Processing is done fully in your browser.</div>
+                <div class="flex-1 flex flex-col gap-6 min-h-0">
+                    <div class="flex flex-col h-1/3 min-h-[150px]">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="font-medium text-slate-700">Input Text</label>
+                            <button id="btn-hash-clear" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded transition"><i class="fa-solid fa-trash"></i> Clear</button>
+                        </div>
+                        <textarea id="hash-input" class="flex-1 w-full p-4 border border-slate-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary focus:border-primary resize-none outline-none shadow-sm" placeholder="Enter text to hash (updates automatically)..."></textarea>
+                    </div>
+                    <div class="flex-1 overflow-y-auto pr-2 space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="font-semibold text-sm text-slate-700">MD5</label>
+                                <button data-copy-target="hash-md5" class="text-xs text-primary hover:text-sky-700 transition"><i class="fa-solid fa-copy"></i> Copy</button>
+                            </div>
+                            <input type="text" id="hash-md5" class="w-full p-3 border border-slate-300 rounded bg-slate-50 font-mono text-sm outline-none" readonly placeholder="MD5 hash...">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="font-semibold text-sm text-slate-700">SHA-1</label>
+                                <button data-copy-target="hash-sha1" class="text-xs text-primary hover:text-sky-700 transition"><i class="fa-solid fa-copy"></i> Copy</button>
+                            </div>
+                            <input type="text" id="hash-sha1" class="w-full p-3 border border-slate-300 rounded bg-slate-50 font-mono text-sm outline-none" readonly placeholder="SHA-1 hash...">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="font-semibold text-sm text-slate-700">SHA-256</label>
+                                <button data-copy-target="hash-sha256" class="text-xs text-primary hover:text-sky-700 transition"><i class="fa-solid fa-copy"></i> Copy</button>
+                            </div>
+                            <input type="text" id="hash-sha256" class="w-full p-3 border border-slate-300 rounded bg-slate-50 font-mono text-sm outline-none" readonly placeholder="SHA-256 hash...">
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="font-semibold text-sm text-slate-700">SHA-512</label>
+                                <button data-copy-target="hash-sha512" class="text-xs text-primary hover:text-sky-700 transition"><i class="fa-solid fa-copy"></i> Copy</button>
+                            </div>
+                            <input type="text" id="hash-sha512" class="w-full p-3 border border-slate-300 rounded bg-slate-50 font-mono text-sm outline-none" readonly placeholder="SHA-512 hash...">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tool-jwt" class="tool-section h-full flex flex-col">
+                <div class="mb-4 text-slate-600 text-sm">Decode JSON Web Tokens (JWT) to inspect header and payload content securely.</div>
+                <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+                    <div class="flex flex-col h-full">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="font-medium text-slate-700">Encoded JWT</label>
+                            <button id="btn-jwt-clear" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded transition"><i class="fa-solid fa-trash"></i> Clear</button>
+                        </div>
+                        <textarea id="jwt-input" class="flex-1 w-full p-4 border border-slate-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary focus:border-primary resize-none outline-none shadow-sm break-all" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+                    </div>
+                    <div class="flex flex-col h-full gap-4">
+                        <div class="flex flex-col h-1/3">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="font-semibold text-sm text-slate-700">Header (Algorithm & Type)</label>
+                            </div>
+                            <textarea id="jwt-header" class="flex-1 w-full p-3 border border-slate-300 rounded-lg bg-slate-50 font-mono text-sm outline-none resize-none shadow-sm" readonly placeholder="Decoded header..."></textarea>
+                        </div>
+                        <div class="flex flex-col flex-1">
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="font-semibold text-sm text-slate-700">Payload (Data)</label>
+                            </div>
+                            <textarea id="jwt-payload" class="flex-1 w-full p-3 border border-slate-300 rounded-lg bg-slate-50 font-mono text-sm outline-none resize-none shadow-sm" readonly placeholder="Decoded payload..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tool-regex" class="tool-section h-full flex flex-col">
+                <div class="mb-4 text-slate-600 text-sm">Test regular expressions against strings in real-time.</div>
+                <div class="flex flex-col gap-4 min-h-0 h-full">
+                    <div>
+                        <label class="font-medium text-slate-700 block mb-2">Regular Expression</label>
+                        <div class="flex items-center gap-2 text-xl font-mono">
+                            <span class="text-slate-500">/</span>
+                            <input type="text" id="regex-pattern" class="flex-1 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none shadow-sm text-base" placeholder="^([a-zA-Z0-9_\-\.]+)@...">
+                            <span class="text-slate-500">/</span>
+                            <input type="text" id="regex-flags" class="w-16 p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none shadow-sm text-base text-center" placeholder="gmi" value="g">
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+                        <div class="flex flex-col h-full">
+                            <label class="font-medium text-slate-700 block mb-2">Test String</label>
+                            <textarea id="regex-input" class="flex-1 w-full p-4 border border-slate-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary focus:border-primary resize-none outline-none shadow-sm" placeholder="Enter text to test your regular expression against..."></textarea>
+                        </div>
+                        <div class="flex flex-col h-full">
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="font-medium text-slate-700">Match Results</label>
+                                <span id="regex-match-count" class="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded">0 matches</span>
+                            </div>
+                            <div id="regex-output" class="flex-1 w-full p-4 border border-slate-300 rounded-lg bg-slate-50 font-mono text-sm overflow-y-auto whitespace-pre-wrap shadow-sm text-slate-800">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div> </main>
+
+    <div id="toast-container"></div>
+
+    <script>
+        /**
+         * @fileoverview Ultimate Dev Tools - Client-side Application Logic
+         * Architected with modular class-based design for scalability.
+         */
+
+        /**
+         * UIとユーティリティを管理するコアクラス
+         */
+        class AppCore {
+            constructor() {
+                this.toastContainer = document.getElementById('toast-container');
+                this.initNavigation();
+            }
+
+            /**
+             * トースト通知を表示する（堅牢なエラーハンドリングの一環）
+             * @param {string} message - 表示するメッセージ
+             * @param {string} type - 'success' または 'error'
+             */
+            showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                // Ensure proper escaping for textContent to prevent XSS
+                toast.textContent = message;
+                toast.className = `toast ${type}`;
+                
+                this.toastContainer.appendChild(toast);
+                
+                // Trigger reflow to ensure animation works
+                void toast.offsetWidth;
+                toast.classList.add('show');
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => {
+                        if (toast.parentNode === this.toastContainer) {
+                            this.toastContainer.removeChild(toast);
+                        }
+                    });
+                }, 3000);
+            }
+
+            /**
+             * クリップボードへテキストをコピーする
+             * @param {string} text - コピーするテキスト
+             */
+            async copyToClipboard(text) {
+                if (!text) {
+                    this.showToast('Nothing to copy.', 'error');
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.showToast('Copied to clipboard!', 'success');
+                } catch (err) {
+                    console.error('Clipboard API failed', err);
+                    // Fallback for older browsers
+                    this.fallbackCopyTextToClipboard(text);
+                }
+            }
+
+            /**
+             * クリップボードAPIが使えない場合のフォールバック処理
+             * @param {string} text - コピーするテキスト
+             */
+            fallbackCopyTextToClipboard(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        this.showToast('Copied to clipboard! (Fallback)', 'success');
+                    } else {
+                        throw new Error('Fallback copy failed');
+                    }
+                } catch (err) {
+                    this.showToast('Failed to copy text.', 'error');
+                    console.error('Fallback clipboard error', err);
+                }
+                document.body.removeChild(textArea);
+            }
+
+            /**
+             * サイドバーナビゲーションの初期化と画面切り替えロジック
+             */
+            initNavigation() {
+                const navButtons = document.querySelectorAll('.nav-btn');
+                const sections = document.querySelectorAll('.tool-section');
+                const titleEl = document.getElementById('current-tool-title');
+
+                navButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        // Remove active class from all buttons
+                        navButtons.forEach(b => {
+                            b.classList.remove('active-nav', 'bg-slate-800');
+                        });
+                        
+                        // Add active class to clicked button
+                        const targetBtn = e.currentTarget;
+                        targetBtn.classList.add('active-nav', 'bg-slate-800');
+                        
+                        // Update Header Title
+                        titleEl.textContent = targetBtn.textContent.trim();
+
+                        // Hide all sections
+                        sections.forEach(sec => sec.classList.remove('active'));
+
+                        // Show target section
+                        const targetId = targetBtn.getAttribute('data-target');
+                        const targetSection = document.getElementById(targetId);
+                        if (targetSection) {
+                            targetSection.classList.add('active');
+                        }
+                    });
+                });
+            }
+        }
+/**
+         * JSON フォーマッター & バリデーター
+         */
+        class JsonTool {
+            /**
+             * @param {AppCore} core - アプリケーションのコアインスタンス
+             */
+            constructor(core) {
+                this.core = core;
+                this.inputEl = document.getElementById('json-input');
+                this.outputEl = document.getElementById('json-output');
+                this.initEvents();
+            }
+
+            initEvents() {
+                document.getElementById('btn-json-format').addEventListener('click', () => this.processJson('format'));
+                document.getElementById('btn-json-minify').addEventListener('click', () => this.processJson('minify'));
+                
+                document.getElementById('btn-json-clear').addEventListener('click', () => {
+                    this.inputEl.value = '';
+                    this.outputEl.value = '';
+                    this.core.showToast('Cleared JSON input', 'success');
+                });
+
+                document.getElementById('btn-json-paste').addEventListener('click', async () => {
+                    try {
+                        const text = await navigator.clipboard.readText();
+                        this.inputEl.value = text;
+                        this.core.showToast('Pasted from clipboard', 'success');
+                    } catch (err) {
+                        this.core.showToast('Failed to read clipboard', 'error');
+                        console.error('Paste error', err);
+                    }
+                });
+
+                document.getElementById('btn-json-copy').addEventListener('click', () => {
+                    this.core.copyToClipboard(this.outputEl.value);
+                });
+            }
+
+            /**
+             * JSONのパースと整形・圧縮を行う
+             * @param {string} action - 'format' または 'minify'
+             */
+            processJson(action) {
+                const rawData = this.inputEl.value.trim();
+                if (!rawData) {
+                    this.core.showToast('Please enter JSON data first.', 'error');
+                    return;
+                }
+
+                try {
+                    // セキュアにJSONをパース（不正な形式の場合はここで例外が発生）
+                    const parsedData = JSON.parse(rawData);
+                    
+                    if (action === 'format') {
+                        this.outputEl.value = JSON.stringify(parsedData, null, 4);
+                        this.core.showToast('JSON Formatted successfully', 'success');
+                    } else if (action === 'minify') {
+                        this.outputEl.value = JSON.stringify(parsedData);
+                        this.core.showToast('JSON Minified successfully', 'success');
+                    }
+                } catch (error) {
+                    this.outputEl.value = `Error parsing JSON:\n${error.message}`;
+                    this.core.showToast('Invalid JSON format', 'error');
+                }
+            }
+        }
+
+        /**
+         * Base64 および URL エンコーダー / デコーダー
+         */
+        class Base64Tool {
+            /**
+             * @param {AppCore} core - アプリケーションのコアインスタンス
+             */
+            constructor(core) {
+                this.core = core;
+                this.inputEl = document.getElementById('base64-input');
+                this.outputEl = document.getElementById('base64-output');
+                this.initEvents();
+            }
+
+            initEvents() {
+                document.getElementById('btn-b64-encode').addEventListener('click', () => this.handleAction('b64encode'));
+                document.getElementById('btn-b64-decode').addEventListener('click', () => this.handleAction('b64decode'));
+                document.getElementById('btn-url-encode').addEventListener('click', () => this.handleAction('urlencode'));
+                document.getElementById('btn-url-decode').addEventListener('click', () => this.handleAction('urldecode'));
+
+                document.getElementById('btn-base64-clear').addEventListener('click', () => {
+                    this.inputEl.value = '';
+                    this.outputEl.value = '';
+                    this.core.showToast('Cleared input', 'success');
+                });
+
+                document.getElementById('btn-base64-copy').addEventListener('click', () => {
+                    this.core.copyToClipboard(this.outputEl.value);
+                });
+            }
+
+            /**
+             * 各種エンコード・デコード処理のルーティングとエラーハンドリング
+             * @param {string} type - 処理の種類
+             */
+            handleAction(type) {
+                const text = this.inputEl.value;
+                if (!text) {
+                    this.core.showToast('Please enter text to process.', 'error');
+                    return;
+                }
+
+                try {
+                    let result = '';
+                    switch (type) {
+                        case 'b64encode':
+                            // マルチバイト文字（日本語など）に対応するためのセキュアなBase64エンコード
+                            result = btoa(unescape(encodeURIComponent(text)));
+                            this.core.showToast('Base64 Encoded', 'success');
+                            break;
+                        case 'b64decode':
+                            // セキュアなBase64デコード
+                            result = decodeURIComponent(escape(atob(text)));
+                            this.core.showToast('Base64 Decoded', 'success');
+                            break;
+                        case 'urlencode':
+                            result = encodeURIComponent(text);
+                            this.core.showToast('URL Encoded', 'success');
+                            break;
+                        case 'urldecode':
+                            result = decodeURIComponent(text);
+                            this.core.showToast('URL Decoded', 'success');
+                            break;
+                    }
+                    this.outputEl.value = result;
+                } catch (error) {
+                    this.outputEl.value = '';
+                    this.core.showToast(`Operation failed: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        /**
+         * ハッシュジェネレーター (CryptoJSを利用したリアルタイム処理)
+         */
+        class HashTool {
+            /**
+             * @param {AppCore} core - アプリケーションのコアインスタンス
+             */
+            constructor(core) {
+                this.core = core;
+                this.inputEl = document.getElementById('hash-input');
+                this.md5El = document.getElementById('hash-md5');
+                this.sha1El = document.getElementById('hash-sha1');
+                this.sha256El = document.getElementById('hash-sha256');
+                this.sha512El = document.getElementById('hash-sha512');
+                this.initEvents();
+            }
+
+            initEvents() {
+                // 入力されるたびにリアルタイムでハッシュを計算する
+                this.inputEl.addEventListener('input', () => this.generateHashes());
+
+                document.getElementById('btn-hash-clear').addEventListener('click', () => {
+                    this.inputEl.value = '';
+                    this.generateHashes();
+                    this.core.showToast('Cleared input', 'success');
+                });
+
+                // 動的なコピーボタンのバインディング
+                const copyButtons = document.querySelectorAll('button[data-copy-target]');
+                copyButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const targetId = e.currentTarget.getAttribute('data-copy-target');
+                        const targetInput = document.getElementById(targetId);
+                        if (targetInput) {
+                            this.core.copyToClipboard(targetInput.value);
+                        }
+                    });
+                });
+            }
+
+            /**
+             * 入力文字列から各種ハッシュ値を生成しUIを更新する
+             */
+            generateHashes() {
+                const text = this.inputEl.value;
+                if (!text) {
+                    this.md5El.value = '';
+                    this.sha1El.value = '';
+                    this.sha256El.value = '';
+                    this.sha512El.value = '';
+                    return;
+                }
+
+                try {
+                    // CryptoJSライブラリを使用して各ハッシュを計算
+                    this.md5El.value = CryptoJS.MD5(text).toString();
+                    this.sha1El.value = CryptoJS.SHA1(text).toString();
+                    this.sha256El.value = CryptoJS.SHA256(text).toString();
+                    this.sha512El.value = CryptoJS.SHA512(text).toString();
+                } catch (error) {
+                    console.error('Hash generation error:', error);
+                    this.core.showToast('Error generating hashes', 'error');
+                }
+            }
+        }
+/**
+         * JWT (JSON Web Token) デコーダー
+         */
+        class JwtTool {
+            /**
+             * @param {AppCore} core - アプリケーションのコアインスタンス
+             */
+            constructor(core) {
+                this.core = core;
+                this.inputEl = document.getElementById('jwt-input');
+                this.headerEl = document.getElementById('jwt-header');
+                this.payloadEl = document.getElementById('jwt-payload');
+                this.initEvents();
+            }
+
+            initEvents() {
+                // ペーストや文字入力のたびにリアルタイムでデコードを試みる
+                this.inputEl.addEventListener('input', () => this.decodeJwt());
+
+                document.getElementById('btn-jwt-clear').addEventListener('click', () => {
+                    this.inputEl.value = '';
+                    this.headerEl.value = '';
+                    this.payloadEl.value = '';
+                    this.core.showToast('Cleared JWT input', 'success');
+                });
+            }
+
+            /**
+             * 入力されたJWTを解析し、ヘッダーとペイロードをUIに表示する
+             */
+            decodeJwt() {
+                const token = this.inputEl.value.trim();
+                if (!token) {
+                    this.headerEl.value = '';
+                    this.payloadEl.value = '';
+                    return;
+                }
+
+                try {
+                    // jwt-decodeライブラリを使用してヘッダーとペイロードをパース
+                    // ※クライアントサイドでのデコードであり、署名の検証は行いません
+                    const header = jwt_decode(token, { header: true });
+                    const payload = jwt_decode(token);
+
+                    this.headerEl.value = JSON.stringify(header, null, 4);
+                    this.payloadEl.value = JSON.stringify(payload, null, 4);
+                } catch (error) {
+                    // 入力途中など、不正なトークンの場合は静かにエラーメッセージを表示
+                    this.headerEl.value = 'Invalid Token...';
+                    this.payloadEl.value = 'Invalid Token...';
+                }
+            }
+        }
+
+        /**
+         * 正規表現 (RegExp) テスター
+         */
+        class RegexTool {
+            /**
+             * @param {AppCore} core - アプリケーションのコアインスタンス
+             */
+            constructor(core) {
+                this.core = core;
+                this.patternEl = document.getElementById('regex-pattern');
+                this.flagsEl = document.getElementById('regex-flags');
+                this.inputEl = document.getElementById('regex-input');
+                this.outputEl = document.getElementById('regex-output');
+                this.matchCountEl = document.getElementById('regex-match-count');
+                this.initEvents();
+            }
+
+            initEvents() {
+                // パターン、フラグ、テスト対象文字列のいずれかが変更されたらリアルタイム評価
+                const evaluate = () => this.evaluateRegex();
+                this.patternEl.addEventListener('input', evaluate);
+                this.flagsEl.addEventListener('input', evaluate);
+                this.inputEl.addEventListener('input', evaluate);
+            }
+
+            /**
+             * HTMLエスケープ処理（XSS対策）
+             * @param {string} str - エスケープする文字列
+             * @returns {string} エスケープ済みの文字列
+             */
+            escapeHtml(str) {
+                if (!str) return '';
+                return str
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            /**
+             * 正規表現をコンパイルし、対象文字列に対してマッチングとハイライトを行う
+             */
+            evaluateRegex() {
+                const pattern = this.patternEl.value;
+                const flags = this.flagsEl.value;
+                const text = this.inputEl.value;
+
+                if (!pattern) {
+                    this.outputEl.innerHTML = this.escapeHtml(text);
+                    this.matchCountEl.textContent = '0 matches';
+                    return;
+                }
+
+                try {
+                    // ユーザー入力から正規表現オブジェクトを動的生成
+                    const regex = new RegExp(pattern, flags);
+                    
+                    if (!text) {
+                        this.outputEl.innerHTML = '';
+                        this.matchCountEl.textContent = '0 matches';
+                        return;
+                    }
+
+                    let matchCount = 0;
+                    
+                    // XSSを防ぎつつ、マッチした部分だけを<span>タグでハイライトする高度な処理
+                    // まず、マッチする箇所を特定し、マーク付けを行う
+                    const highlightedHtml = text.replace(regex, (match) => {
+                        matchCount++;
+                        // マッチしたテキスト自体もセキュアにエスケープする
+                        const escapedMatch = this.escapeHtml(match);
+                        return `<span class="bg-primary text-white rounded px-1">${escapedMatch}</span>`;
+                    });
+
+                    // 最終的にエスケープが漏れている箇所がないようにするが、
+                    // replaceによる動的置換だと複雑になるため、
+                    // 実際には全体をエスケープした後にプレースホルダーを置換するアプローチが最も安全です。
+                    
+                    // より安全なハイライト処理の再実装：
+                    // regex.exec等でインデックスを取得して組み立てるアプローチ
+                    
+                    let resultHtml = '';
+                    let lastIndex = 0;
+                    let safeMatchCount = 0;
+                    
+                    // フラグに 'g' がない場合は無限ループを防ぐ
+                    const safeRegex = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
+                    let match;
+
+                    while ((match = safeRegex.exec(text)) !== null) {
+                        safeMatchCount++;
+                        // マッチの前の文字列（エスケープ）
+                        resultHtml += this.escapeHtml(text.substring(lastIndex, match.index));
+                        // マッチした文字列（エスケープ＋ハイライト）
+                        resultHtml += `<span class="bg-yellow-300 text-slate-900 rounded px-1 font-bold shadow-sm">${this.escapeHtml(match[0])}</span>`;
+                        lastIndex = safeRegex.lastIndex;
+
+                        // ゼロ幅マッチの無限ループ回避
+                        if (match.index === safeRegex.lastIndex) {
+                            safeRegex.lastIndex++;
+                        }
+                    }
+                    
+                    // 残りの文字列（エスケープ）
+                    resultHtml += this.escapeHtml(text.substring(lastIndex));
+
+                    this.outputEl.innerHTML = resultHtml;
+                    this.matchCountEl.textContent = `${safeMatchCount} match${safeMatchCount !== 1 ? 'es' : ''}`;
+
+                    // エラー状態のスタイルを解除
+                    this.patternEl.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+
+                } catch (error) {
+                    // パターンの構文エラー時（未閉じのカッコなど）
+                    this.outputEl.innerHTML = `<span class="text-red-500">Regex Error: ${this.escapeHtml(error.message)}</span>`;
+                    this.matchCountEl.textContent = 'Error';
+                    // エラー状態をUIで明示
+                    this.patternEl.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                }
+            }
+        }
+          /**
+         * アプリケーションのエントリーポイント
+         * DOMの読み込みが完了した時点で、コアシステムと各ツールを初期化します。
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                // 1. コア機能の初期化（ナビゲーション、通知、クリップボード管理）
+                const appCore = new AppCore();
+
+                // 2. 各ツールの初期化と依存性の注入（DI）
+                // 各ツールに appCore を渡すことで、共通機能へのアクセスを可能にする
+                const jsonTool = new JsonTool(appCore);
+                const base64Tool = new Base64Tool(appCore);
+                const hashTool = new HashTool(appCore);
+                const jwtTool = new JwtTool(appCore);
+                const regexTool = new RegexTool(appCore);
+
+                // 3. 開発者向けログ出力（初期化成功の確認）
+                console.info('%c🛠️ Ultimate Dev Tools initialized successfully.', 'color: #0ea5e9; font-weight: bold; font-size: 14px;');
+                console.info('All data is processed locally in your browser. No data is sent to external servers.');
+
+            } catch (error) {
+                console.error('Failed to initialize Ultimate Dev Tools:', error);
+                // 初期化時の致命的なエラーをユーザーに通知
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'bg-red-500 text-white p-4 absolute top-0 left-0 w-full text-center z-50';
+                errorDiv.textContent = `Initialization Error: ${error.message}`;
+                document.body.prepend(errorDiv);
+            }
+        });
+
+    </script>
+</body>
+</html>
