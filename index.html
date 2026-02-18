@@ -46,7 +46,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Toast notification styles */
+        
         #toast-container {
             position: fixed;
             bottom: 20px;
@@ -289,34 +289,23 @@
     <div id="toast-container"></div>
 
     <script>
-        /**
-         * @fileoverview Ultimate Dev Tools - Client-side Application Logic
-         * Architected with modular class-based design for scalability.
-         */
-
-        /**
-         * UIとユーティリティを管理するコアクラス
-         */
+        
         class AppCore {
             constructor() {
                 this.toastContainer = document.getElementById('toast-container');
                 this.initNavigation();
             }
 
-            /**
-             * トースト通知を表示する（堅牢なエラーハンドリングの一環）
-             * @param {string} message - 表示するメッセージ
-             * @param {string} type - 'success' または 'error'
-             */
+            
             showToast(message, type = 'success') {
                 const toast = document.createElement('div');
-                // Ensure proper escaping for textContent to prevent XSS
+               
                 toast.textContent = message;
                 toast.className = `toast ${type}`;
                 
                 this.toastContainer.appendChild(toast);
                 
-                // Trigger reflow to ensure animation works
+             
                 void toast.offsetWidth;
                 toast.classList.add('show');
 
@@ -330,10 +319,7 @@
                 }, 3000);
             }
 
-            /**
-             * クリップボードへテキストをコピーする
-             * @param {string} text - コピーするテキスト
-             */
+          
             async copyToClipboard(text) {
                 if (!text) {
                     this.showToast('Nothing to copy.', 'error');
@@ -349,10 +335,7 @@
                 }
             }
 
-            /**
-             * クリップボードAPIが使えない場合のフォールバック処理
-             * @param {string} text - コピーするテキスト
-             */
+        
             fallbackCopyTextToClipboard(text) {
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
@@ -374,9 +357,7 @@
                 document.body.removeChild(textArea);
             }
 
-            /**
-             * サイドバーナビゲーションの初期化と画面切り替えロジック
-             */
+          
             initNavigation() {
                 const navButtons = document.querySelectorAll('.nav-btn');
                 const sections = document.querySelectorAll('.tool-section');
@@ -384,22 +365,22 @@
 
                 navButtons.forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        // Remove active class from all buttons
+                       
                         navButtons.forEach(b => {
                             b.classList.remove('active-nav', 'bg-slate-800');
                         });
                         
-                        // Add active class to clicked button
+                    
                         const targetBtn = e.currentTarget;
                         targetBtn.classList.add('active-nav', 'bg-slate-800');
                         
-                        // Update Header Title
+                   
                         titleEl.textContent = targetBtn.textContent.trim();
 
-                        // Hide all sections
+                 
                         sections.forEach(sec => sec.classList.remove('active'));
 
-                        // Show target section
+                   
                         const targetId = targetBtn.getAttribute('data-target');
                         const targetSection = document.getElementById(targetId);
                         if (targetSection) {
@@ -409,13 +390,8 @@
                 });
             }
         }
-/**
-         * JSON フォーマッター & バリデーター
-         */
         class JsonTool {
-            /**
-             * @param {AppCore} core - アプリケーションのコアインスタンス
-             */
+        
             constructor(core) {
                 this.core = core;
                 this.inputEl = document.getElementById('json-input');
@@ -449,10 +425,6 @@
                 });
             }
 
-            /**
-             * JSONのパースと整形・圧縮を行う
-             * @param {string} action - 'format' または 'minify'
-             */
             processJson(action) {
                 const rawData = this.inputEl.value.trim();
                 if (!rawData) {
@@ -461,7 +433,7 @@
                 }
 
                 try {
-                    // セキュアにJSONをパース（不正な形式の場合はここで例外が発生）
+                 
                     const parsedData = JSON.parse(rawData);
                     
                     if (action === 'format') {
@@ -478,13 +450,9 @@
             }
         }
 
-        /**
-         * Base64 および URL エンコーダー / デコーダー
-         */
+       
         class Base64Tool {
-            /**
-             * @param {AppCore} core - アプリケーションのコアインスタンス
-             */
+          
             constructor(core) {
                 this.core = core;
                 this.inputEl = document.getElementById('base64-input');
@@ -509,10 +477,6 @@
                 });
             }
 
-            /**
-             * 各種エンコード・デコード処理のルーティングとエラーハンドリング
-             * @param {string} type - 処理の種類
-             */
             handleAction(type) {
                 const text = this.inputEl.value;
                 if (!text) {
@@ -524,13 +488,13 @@
                     let result = '';
                     switch (type) {
                         case 'b64encode':
-                            // マルチバイト文字（日本語など）に対応するためのセキュアなBase64エンコード
+                          
                             result = btoa(unescape(encodeURIComponent(text)));
                             this.core.showToast('Base64 Encoded', 'success');
                             break;
                         case 'b64decode':
-                            // セキュアなBase64デコード
-                            result = decodeURIComponent(escape(atob(text)));
+                           
+                            result = decodeURIComponent(mescape(atob(text)));
                             this.core.showToast('Base64 Decoded', 'success');
                             break;
                         case 'urlencode':
@@ -550,13 +514,9 @@
             }
         }
 
-        /**
-         * ハッシュジェネレーター (CryptoJSを利用したリアルタイム処理)
-         */
+       
         class HashTool {
-            /**
-             * @param {AppCore} core - アプリケーションのコアインスタンス
-             */
+       
             constructor(core) {
                 this.core = core;
                 this.inputEl = document.getElementById('hash-input');
@@ -568,7 +528,7 @@
             }
 
             initEvents() {
-                // 入力されるたびにリアルタイムでハッシュを計算する
+               
                 this.inputEl.addEventListener('input', () => this.generateHashes());
 
                 document.getElementById('btn-hash-clear').addEventListener('click', () => {
@@ -577,7 +537,7 @@
                     this.core.showToast('Cleared input', 'success');
                 });
 
-                // 動的なコピーボタンのバインディング
+                
                 const copyButtons = document.querySelectorAll('button[data-copy-target]');
                 copyButtons.forEach(btn => {
                     btn.addEventListener('click', (e) => {
@@ -590,9 +550,7 @@
                 });
             }
 
-            /**
-             * 入力文字列から各種ハッシュ値を生成しUIを更新する
-             */
+            
             generateHashes() {
                 const text = this.inputEl.value;
                 if (!text) {
@@ -604,7 +562,7 @@
                 }
 
                 try {
-                    // CryptoJSライブラリを使用して各ハッシュを計算
+                
                     this.md5El.value = CryptoJS.MD5(text).toString();
                     this.sha1El.value = CryptoJS.SHA1(text).toString();
                     this.sha256El.value = CryptoJS.SHA256(text).toString();
@@ -615,13 +573,9 @@
                 }
             }
         }
-/**
-         * JWT (JSON Web Token) デコーダー
-         */
+
         class JwtTool {
-            /**
-             * @param {AppCore} core - アプリケーションのコアインスタンス
-             */
+         
             constructor(core) {
                 this.core = core;
                 this.inputEl = document.getElementById('jwt-input');
@@ -631,7 +585,7 @@
             }
 
             initEvents() {
-                // ペーストや文字入力のたびにリアルタイムでデコードを試みる
+              
                 this.inputEl.addEventListener('input', () => this.decodeJwt());
 
                 document.getElementById('btn-jwt-clear').addEventListener('click', () => {
@@ -642,9 +596,7 @@
                 });
             }
 
-            /**
-             * 入力されたJWTを解析し、ヘッダーとペイロードをUIに表示する
-             */
+          
             decodeJwt() {
                 const token = this.inputEl.value.trim();
                 if (!token) {
@@ -654,28 +606,21 @@
                 }
 
                 try {
-                    // jwt-decodeライブラリを使用してヘッダーとペイロードをパース
-                    // ※クライアントサイドでのデコードであり、署名の検証は行いません
+                 
                     const header = jwt_decode(token, { header: true });
                     const payload = jwt_decode(token);
 
                     this.headerEl.value = JSON.stringify(header, null, 4);
                     this.payloadEl.value = JSON.stringify(payload, null, 4);
                 } catch (error) {
-                    // 入力途中など、不正なトークンの場合は静かにエラーメッセージを表示
+                  
                     this.headerEl.value = 'Invalid Token...';
                     this.payloadEl.value = 'Invalid Token...';
                 }
             }
         }
 
-        /**
-         * 正規表現 (RegExp) テスター
-         */
         class RegexTool {
-            /**
-             * @param {AppCore} core - アプリケーションのコアインスタンス
-             */
             constructor(core) {
                 this.core = core;
                 this.patternEl = document.getElementById('regex-pattern');
@@ -687,18 +632,14 @@
             }
 
             initEvents() {
-                // パターン、フラグ、テスト対象文字列のいずれかが変更されたらリアルタイム評価
+        
                 const evaluate = () => this.evaluateRegex();
                 this.patternEl.addEventListener('input', evaluate);
                 this.flagsEl.addEventListener('input', evaluate);
                 this.inputEl.addEventListener('input', evaluate);
             }
 
-            /**
-             * HTMLエスケープ処理（XSS対策）
-             * @param {string} str - エスケープする文字列
-             * @returns {string} エスケープ済みの文字列
-             */
+          
             escapeHtml(str) {
                 if (!str) return '';
                 return str
@@ -709,9 +650,6 @@
                     .replace(/'/g, "&#039;");
             }
 
-            /**
-             * 正規表現をコンパイルし、対象文字列に対してマッチングとハイライトを行う
-             */
             evaluateRegex() {
                 const pattern = this.patternEl.value;
                 const flags = this.flagsEl.value;
@@ -724,7 +662,7 @@
                 }
 
                 try {
-                    // ユーザー入力から正規表現オブジェクトを動的生成
+                 
                     const regex = new RegExp(pattern, flags);
                     
                     if (!text) {
@@ -734,87 +672,74 @@
                     }
 
                     let matchCount = 0;
-                    
-                    // XSSを防ぎつつ、マッチした部分だけを<span>タグでハイライトする高度な処理
-                    // まず、マッチする箇所を特定し、マーク付けを行う
+              
                     const highlightedHtml = text.replace(regex, (match) => {
                         matchCount++;
-                        // マッチしたテキスト自体もセキュアにエスケープする
+                  
                         const escapedMatch = this.escapeHtml(match);
                         return `<span class="bg-primary text-white rounded px-1">${escapedMatch}</span>`;
                     });
 
-                    // 最終的にエスケープが漏れている箇所がないようにするが、
-                    // replaceによる動的置換だと複雑になるため、
-                    // 実際には全体をエスケープした後にプレースホルダーを置換するアプローチが最も安全です。
-                    
-                    // より安全なハイライト処理の再実装：
-                    // regex.exec等でインデックスを取得して組み立てるアプローチ
+              
                     
                     let resultHtml = '';
                     let lastIndex = 0;
                     let safeMatchCount = 0;
                     
-                    // フラグに 'g' がない場合は無限ループを防ぐ
+            
                     const safeRegex = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
                     let match;
 
                     while ((match = safeRegex.exec(text)) !== null) {
                         safeMatchCount++;
-                        // マッチの前の文字列（エスケープ）
+                     
                         resultHtml += this.escapeHtml(text.substring(lastIndex, match.index));
-                        // マッチした文字列（エスケープ＋ハイライト）
+                
                         resultHtml += `<span class="bg-yellow-300 text-slate-900 rounded px-1 font-bold shadow-sm">${this.escapeHtml(match[0])}</span>`;
                         lastIndex = safeRegex.lastIndex;
-
-                        // ゼロ幅マッチの無限ループ回避
                         if (match.index === safeRegex.lastIndex) {
                             safeRegex.lastIndex++;
                         }
                     }
                     
-                    // 残りの文字列（エスケープ）
+                    
                     resultHtml += this.escapeHtml(text.substring(lastIndex));
 
                     this.outputEl.innerHTML = resultHtml;
                     this.matchCountEl.textContent = `${safeMatchCount} match${safeMatchCount !== 1 ? 'es' : ''}`;
 
-                    // エラー状態のスタイルを解除
+                    
                     this.patternEl.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
 
                 } catch (error) {
-                    // パターンの構文エラー時（未閉じのカッコなど）
+            
                     this.outputEl.innerHTML = `<span class="text-red-500">Regex Error: ${this.escapeHtml(error.message)}</span>`;
                     this.matchCountEl.textContent = 'Error';
-                    // エラー状態をUIで明示
+            
                     this.patternEl.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
                 }
             }
         }
-          /**
-         * アプリケーションのエントリーポイント
-         * DOMの読み込みが完了した時点で、コアシステムと各ツールを初期化します。
-         */
+         
         document.addEventListener('DOMContentLoaded', () => {
             try {
-                // 1. コア機能の初期化（ナビゲーション、通知、クリップボード管理）
+               
                 const appCore = new AppCore();
 
-                // 2. 各ツールの初期化と依存性の注入（DI）
-                // 各ツールに appCore を渡すことで、共通機能へのアクセスを可能にする
+       
                 const jsonTool = new JsonTool(appCore);
                 const base64Tool = new Base64Tool(appCore);
                 const hashTool = new HashTool(appCore);
                 const jwtTool = new JwtTool(appCore);
                 const regexTool = new RegexTool(appCore);
 
-                // 3. 開発者向けログ出力（初期化成功の確認）
+             
                 console.info('%c🛠️ Ultimate Dev Tools initialized successfully.', 'color: #0ea5e9; font-weight: bold; font-size: 14px;');
                 console.info('All data is processed locally in your browser. No data is sent to external servers.');
 
             } catch (error) {
                 console.error('Failed to initialize Ultimate Dev Tools:', error);
-                // 初期化時の致命的なエラーをユーザーに通知
+             
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'bg-red-500 text-white p-4 absolute top-0 left-0 w-full text-center z-50';
                 errorDiv.textContent = `Initialization Error: ${error.message}`;
